@@ -25,11 +25,12 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Configure testing environment
-        uses: THIS-Labs/actions-configure-test-env@v0.15
+        uses: THIS-Labs/actions-configure-test-env@v0.17.1
         with:
           afs25_account: ${{ secrets.AFS25_AWS_ACCOUNT }}
           sem86_account: ${{ secrets.SEM86_AWS_ACCOUNT }}
           amp205_account: ${{ secrets.AMP205_AWS_ACCOUNT }}
+          actor2account_map: ${{ vars.ACTOR2ACCOUNT_MAP }}
 
       - name: Build
         uses: THIS-Labs/actions-build-stack@v0.3
@@ -59,17 +60,12 @@ jobs:
           python-version: 3.9
 
       - name: Configure testing environment
-        uses: THIS-Labs/actions-configure-test-env@v0.15
+        uses: THIS-Labs/actions-configure-test-env@v0.17.1
         with:
           afs25_account: ${{ secrets.AFS25_AWS_ACCOUNT }}
           sem86_account: ${{ secrets.SEM86_AWS_ACCOUNT }}
           amp205_account: ${{ secrets.AMP205_AWS_ACCOUNT }}
-          afs25_sg_account: ${{ secrets.AFS25_SECURITY_GROUP_ID }}
-          sem86_sg_account: ${{ secrets.SEM86_SECURITY_GROUP_ID }}
-          amp205_sg_account: ${{ secrets.AMP205_SECURITY_GROUP_ID }}
-          sem86_slack_bot_token: ${{ secrets.SEM86_SLACK_BOT_TOKEN }}
-          afs25_slack_bot_token: ${{ secrets.AFS25_SLACK_BOT_TOKEN }}
-          amp205_slack_bot_token: ${{ secrets.AMP205_SLACK_BOT_TOKEN }}
+          actor2account_map: ${{ vars.ACTOR2ACCOUNT_MAP }}
 
       - name: Set test api url
         shell: bash
