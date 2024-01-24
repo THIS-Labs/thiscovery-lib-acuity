@@ -34,16 +34,21 @@ jobs:
         amp205_account: ${{ secrets.AMP205_AWS_ACCOUNT }}
         actor2account_map: ${{ vars.ACTOR2ACCOUNT_MAP }}
 
-#    - name: Assume the testing role in testing account
-#      uses: aws-actions/configure-aws-credentials@v1-node16
-#      with:
-#        aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
-#        aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-#        aws-region: ${{ env.AWS_REGION }}
-#        role-to-assume: ${{ env.TESTING_ACCOUNT_TEST_ROLE }}
-#        role-session-name: ${{ env.STACK_NAME }}-testing
-#        role-duration-seconds: 3600
-#        role-skip-session-tagging: true
+    - name: Set test api url
+      shell: bash
+      run: |
+        echo "AWS_TEST_API=https://${AWS_TEST_ENV}-interviews-api.thiscovery.org/" >> $GITHUB_ENV
+
+    - name: Assume the testing role in testing account
+      uses: aws-actions/configure-aws-credentials@v1-node16
+      with:
+        aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        role-to-assume: ${{ env.TESTING_ACCOUNT_TEST_ROLE }}
+        role-session-name: ${{ env.STACK_NAME }}-testing
+        role-duration-seconds: 3600
+        role-skip-session-tagging: true
 
     - name: Install dependencies
       run: |
