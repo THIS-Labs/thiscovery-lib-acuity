@@ -1,28 +1,63 @@
-name: Feature pipeline
-
-on:
-  push:
-    branches:
-      - 'cicd-*'
-  pull_request:
-    branches:
-      - 'main'
-
-
-env:
-  PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  EPSAGON_TOKEN: ${{ secrets.EPSAGON_TOKEN }}
-  SAM_TEMPLATE: template.yaml
-  AWS_REGION: eu-west-1
-  STACK_NAME: thiscovery-lib-acuity
-
-jobs:
-#  deploy-testing:
-#    name: Deploy to test env
+#name: Feature pipeline
+#
+#on:
+#  push:
+#    branches:
+#      - 'cicd-*'
+#  pull_request:
+#    branches:
+#      - 'main'
+#
+#
+#env:
+#  PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#  PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#  EPSAGON_TOKEN: ${{ secrets.EPSAGON_TOKEN }}
+#  SAM_TEMPLATE: template.yaml
+#  AWS_REGION: eu-west-1
+#  STACK_NAME: thiscovery-lib-acuity
+#
+#jobs:
+##  deploy-testing:
+##    name: Deploy to test env
+##    runs-on: ubuntu-latest
+##    steps:
+##      - uses: actions/checkout@v3
+##
+##      - name: Configure testing environment
+##        uses: THIS-Labs/actions-configure-test-env@v0.17.1
+##        with:
+##          afs25_account: ${{ secrets.AFS25_AWS_ACCOUNT }}
+##          sem86_account: ${{ secrets.SEM86_AWS_ACCOUNT }}
+##          amp205_account: ${{ secrets.AMP205_AWS_ACCOUNT }}
+##          actor2account_map: ${{ vars.ACTOR2ACCOUNT_MAP }}
+##
+##      - name: Build
+##        uses: THIS-Labs/actions-build-stack@v0.3
+##
+##      - name: Package
+##        uses: THIS-Labs/actions-package-stack@v0.4
+##        with:
+##          from_env: ${{ env.AWS_TEST_ENV }}
+##          to_env: ${{ env.AWS_TEST_ENV }}
+##          deployment_role: ${{ env.TESTING_ACCOUNT_DEPLOYMENT_ROLE }}
+##          artifacts_bucket: ${{ env.ARTIFACTS_BUCKET }}
+##
+##      - name: Execute thiscovery deployment via cli
+##        run: |
+##          thiscovery deploy ${{ env.STACK_NAME }}
+#
+#  test:
+#    name: Test on AWS
+##    needs: [deploy-testing]
 #    runs-on: ubuntu-latest
 #    steps:
 #      - uses: actions/checkout@v3
+#
+#      - name: Install Python 3
+#        uses: actions/setup-python@v4
+#        with:
+#          python-version: 3.9
 #
 #      - name: Configure testing environment
 #        uses: THIS-Labs/actions-configure-test-env@v0.17.1
@@ -32,72 +67,37 @@ jobs:
 #          amp205_account: ${{ secrets.AMP205_AWS_ACCOUNT }}
 #          actor2account_map: ${{ vars.ACTOR2ACCOUNT_MAP }}
 #
-#      - name: Build
-#        uses: THIS-Labs/actions-build-stack@v0.3
-#
-#      - name: Package
-#        uses: THIS-Labs/actions-package-stack@v0.4
-#        with:
-#          from_env: ${{ env.AWS_TEST_ENV }}
-#          to_env: ${{ env.AWS_TEST_ENV }}
-#          deployment_role: ${{ env.TESTING_ACCOUNT_DEPLOYMENT_ROLE }}
-#          artifacts_bucket: ${{ env.ARTIFACTS_BUCKET }}
-#
-#      - name: Execute thiscovery deployment via cli
+#      - name: Set test api url
+#        shell: bash
 #        run: |
-#          thiscovery deploy ${{ env.STACK_NAME }}
-
-  test:
-    name: Test on AWS
-#    needs: [deploy-testing]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Install Python 3
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
-
-      - name: Configure testing environment
-        uses: THIS-Labs/actions-configure-test-env@v0.17.1
-        with:
-          afs25_account: ${{ secrets.AFS25_AWS_ACCOUNT }}
-          sem86_account: ${{ secrets.SEM86_AWS_ACCOUNT }}
-          amp205_account: ${{ secrets.AMP205_AWS_ACCOUNT }}
-          actor2account_map: ${{ vars.ACTOR2ACCOUNT_MAP }}
-
-      - name: Set test api url
-        shell: bash
-        run: |
-          echo "AWS_TEST_API=https://${AWS_TEST_ENV}-api.thiscovery.org/" >> $GITHUB_ENV
-
-      - name: Install dependencies
-        shell: bash
-        run: |
-          pip install -r requirements.txt
-
-      - name: Assume the testing role in testing account
-        uses: aws-actions/configure-aws-credentials@v1-node16
-        with:
-          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: ${{ env.TESTING_ACCOUNT_TEST_ROLE }}
-          role-session-name: ${{ env.STACK_NAME }}-testing
-          role-duration-seconds: 3600
-          role-skip-session-tagging: true
-
-      - name: Run tests
-        uses: THIS-Labs/actions-run-tests@v0.11
-        with:
-          python_path: ./api:./api/tests/test_scripts:./api/endpoints:./api/tests:./layers/common
-
-      - name: Post to test Slack channel
-        id: slack
-        uses: slackapi/slack-github-action@v1.23.0
-        with:
-          channel-id: ${{ env.AWS_TEST_ENV }}-deployments
-          slack-message: "GitHub build and test result: ${{ job.status }}\nLink: ${{ github.event.pull_request.html_url || github.event.head_commit.url}}\n"
-        env:
-          SLACK_BOT_TOKEN: ${{ env.TEST_SLACK_BOT_TOKEN }}
+#          echo "AWS_TEST_API=https://${AWS_TEST_ENV}-api.thiscovery.org/" >> $GITHUB_ENV
+#
+#      - name: Install dependencies
+#        shell: bash
+#        run: |
+#          pip install -r requirements.txt
+#
+#      - name: Assume the testing role in testing account
+#        uses: aws-actions/configure-aws-credentials@v1-node16
+#        with:
+#          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
+#          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
+#          aws-region: ${{ env.AWS_REGION }}
+#          role-to-assume: ${{ env.TESTING_ACCOUNT_TEST_ROLE }}
+#          role-session-name: ${{ env.STACK_NAME }}-testing
+#          role-duration-seconds: 3600
+#          role-skip-session-tagging: true
+#
+#      - name: Run tests
+#        uses: THIS-Labs/actions-run-tests@v0.11
+#        with:
+#          python_path: ./api:./api/tests/test_scripts:./api/endpoints:./api/tests:./layers/common
+#
+#      - name: Post to test Slack channel
+#        id: slack
+#        uses: slackapi/slack-github-action@v1.23.0
+#        with:
+#          channel-id: ${{ env.AWS_TEST_ENV }}-deployments
+#          slack-message: "GitHub build and test result: ${{ job.status }}\nLink: ${{ github.event.pull_request.html_url || github.event.head_commit.url}}\n"
+#        env:
+#          SLACK_BOT_TOKEN: ${{ env.TEST_SLACK_BOT_TOKEN }}
