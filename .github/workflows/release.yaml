@@ -1,0 +1,272 @@
+name: Release pipeline
+
+on:
+  push:
+    branches:
+      - 'master'
+
+
+env:
+  PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  EPSAGON_TOKEN: ${{ secrets.EPSAGON_TOKEN }}
+  SAM_TEMPLATE: template.yaml
+  AWS_REGION: eu-west-1
+  STAGING_ARTIFACTS_BUCKET: thiscovery-devops-staging-deployment-artifacts
+  PROD_ARTIFACTS_BUCKET: thiscovery-devops-prod-deployment-artifacts
+  STACK_NAME: thiscovery-core
+
+
+jobs:
+  build-and-package:
+    name: Build and package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set staging and prod env variables
+        run: |
+          echo "STAGING_DEPLOYMENT_ROLE=arn:aws:iam::${{ secrets.STAGING_AWS_ACCOUNT }}:role/thiscovery-devops-staging-${AWS_REGION}-PipelineExec" >> $GITHUB_ENV
+          echo "PROD_DEPLOYMENT_ROLE=arn:aws:iam::${{ secrets.PROD_AWS_ACCOUNT }}:role/thiscovery-devops-prod-${AWS_REGION}-PipelineExec" >> $GITHUB_ENV
+
+      - uses: THIS-Labs/actions-configure-test-env@v0.15
+        with:
+          afs25_account: ${{ secrets.AFS25_AWS_ACCOUNT }}
+          sem86_account: ${{ secrets.SEM86_AWS_ACCOUNT }}
+          amp205_account: ${{ secrets.AMP205_AWS_ACCOUNT }}
+
+      - uses: actions/checkout@v3
+
+      - name: Build
+        uses: THIS-Labs/actions-build-stack@v0.3
+
+      - name: Package for testing env
+        uses: THIS-Labs/actions-package-stack@v0.4
+        with:
+          from_env: ${{ env.AWS_TEST_ENV }}
+          to_env: ${{ env.AWS_TEST_ENV }}
+          deployment_role: ${{ env.TESTING_ACCOUNT_DEPLOYMENT_ROLE }}
+          artifacts_bucket: ${{ env.ARTIFACTS_BUCKET }}
+
+      # Currently, this step has to be done in the workflow rather than composite action due to this issue: https://github.com/actions/runner/issues/789
+      - name: Assume the deployment pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.STAGING_DEPLOYMENT_ROLE }}
+          role-session-name: ${{ env.STACK_NAME }}-${{ inputs.to_env }}-packaging
+          role-duration-seconds: 3600
+          role-skip-session-tagging: true
+
+      - name: Package for staging
+        uses: THIS-Labs/actions-package-stack@v0.4
+        with:
+          from_env: ${{ env.AWS_TEST_ENV }}
+          to_env: staging
+          deployment_role: ${{ env.STAGING_DEPLOYMENT_ROLE }}
+          artifacts_bucket: ${{ env.STAGING_ARTIFACTS_BUCKET }}
+
+      # Currently, this step has to be done in the workflow rather than composite action due to this issue: https://github.com/actions/runner/issues/789
+      - name: Assume the deployment pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.PROD_DEPLOYMENT_ROLE }}
+          role-session-name: ${{ env.STACK_NAME }}-${{ inputs.to_env }}-packaging
+          role-duration-seconds: 3600
+          role-skip-session-tagging: true
+
+      - name: Package for production
+        uses: THIS-Labs/actions-package-stack@v0.4
+        with:
+          from_env: staging
+          to_env: prod
+          deployment_role: ${{ env.PROD_DEPLOYMENT_ROLE }}
+          artifacts_bucket: ${{ env.PROD_ARTIFACTS_BUCKET }}
+
+  deploy-testing:
+    name: Deploy to test env
+    needs: [build-and-package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure testing environment
+        uses: THIS-Labs/actions-configure-test-env@v0.15
+        with:
+          afs25_account: ${{ secrets.AFS25_AWS_ACCOUNT }}
+          sem86_account: ${{ secrets.SEM86_AWS_ACCOUNT }}
+          amp205_account: ${{ secrets.AMP205_AWS_ACCOUNT }}
+          afs25_sg_account: ${{ secrets.AFS25_SECURITY_GROUP_ID }}
+          sem86_sg_account: ${{ secrets.SEM86_SECURITY_GROUP_ID }}
+          amp205_sg_account: ${{ secrets.AMP205_SECURITY_GROUP_ID }}
+
+      - uses: actions/checkout@v3
+
+      # Currently, this step has to be done in the workflow rather than composite action due to this issue: https://github.com/actions/runner/issues/789
+      - name: Assume the deployment pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.TESTING_ACCOUNT_DEPLOYMENT_ROLE }}
+          role-session-name: ${{ env.STACK_NAME }}-deployment
+          role-duration-seconds: 3600
+          role-skip-session-tagging: true
+
+      - name: deploy to test environment
+        uses: THIS-Labs/actions-deploy-stack@v0.2
+        with:
+          template_name: ${{ env.PACKAGED_TEMPLATE }}
+          deployment_role: ${{ env.TESTING_ACCOUNT_DEPLOYMENT_ROLE }}
+
+
+  test:
+    name: Test on AWS
+    needs: [deploy-testing]
+    runs-on: ubuntu-22-04-16GB
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Python 3
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Configure testing environment
+        uses: THIS-Labs/actions-configure-test-env@v0.15
+        with:
+          afs25_account: ${{ secrets.AFS25_AWS_ACCOUNT }}
+          sem86_account: ${{ secrets.SEM86_AWS_ACCOUNT }}
+          amp205_account: ${{ secrets.AMP205_AWS_ACCOUNT }}
+          afs25_sg_account: ${{ secrets.AFS25_SECURITY_GROUP_ID }}
+          sem86_sg_account: ${{ secrets.SEM86_SECURITY_GROUP_ID }}
+          amp205_sg_account: ${{ secrets.AMP205_SECURITY_GROUP_ID }}
+          sem86_slack_bot_token: ${{ secrets.SEM86_SLACK_BOT_TOKEN }}
+          afs25_slack_bot_token: ${{ secrets.AFS25_SLACK_BOT_TOKEN }}
+          amp205_slack_bot_token: ${{ secrets.AMP205_SLACK_BOT_TOKEN }}
+
+      - name: Set test api url
+        shell: bash
+        run: |
+          echo "AWS_TEST_API=https://${AWS_TEST_ENV}-api.thiscovery.org/" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          pip install -r requirements.txt
+
+      - name: Assume the testing role in testing account
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.TESTING_ACCOUNT_TEST_ROLE }}
+          role-session-name: ${{ env.STACK_NAME }}-testing
+          role-duration-seconds: 3600
+          role-skip-session-tagging: true
+
+      - name: Run tests
+        uses: THIS-Labs/actions-run-tests@v0.11
+        with:
+          python_path: ./api:./api/tests/test_scripts:./api/endpoints:./api/tests:./layers/common
+
+      - name: Post to a Slack channel
+        id: slack
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: 'stackery-deployments'
+          slack-message: "GitHub run tests: ${{ job.status }}\nLink: ${{ github.event.head_commit.url}}\nEnv: ${{ env.AWS_TEST_ENV }}\n"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: [test]
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Set env variables
+        run: |
+          echo "SECRETS_NAMESPACE=/staging/" >> $GITHUB_ENV
+          echo "STAGING_DEPLOYMENT_ROLE=arn:aws:iam::${{ secrets.STAGING_AWS_ACCOUNT }}:role/thiscovery-devops-staging-${AWS_REGION}-PipelineExec" >> $GITHUB_ENV
+          echo "ARTIFACTS_BUCKET=thiscovery-devops-staging-deployment-artifacts" >> $GITHUB_ENV
+          echo "CLOUDFORMATION_EXECUTION_ROLE=arn:aws:iam::${{ secrets.STAGING_AWS_ACCOUNT }}:role/thiscovery-devops-staging-${AWS_REGION}-CFExec" >> $GITHUB_ENV
+          echo "DEPLOYMENT_METHOD=github_actions" >> $GITHUB_ENV
+          echo "PACKAGED_TEMPLATE=${{ env.STACK_NAME }}-packaged-staging.yaml" >> $GITHUB_ENV
+
+      # Currently, this step has to be done in the workflow rather than composite action due to this issue: https://github.com/actions/runner/issues/789
+      - name: Assume the deployment pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.STAGING_DEPLOYMENT_ROLE }}
+          role-session-name: ${{ env.STACK_NAME }}-deployment
+          role-duration-seconds: 3600
+          role-skip-session-tagging: true
+
+      - uses: actions/checkout@v3
+
+      - name: deploy to staging
+        uses: THIS-Labs/actions-deploy-stack@v0.2
+        with:
+          template_name: ${{ env.PACKAGED_TEMPLATE }}
+          deployment_role: ${{ env.STAGING_DEPLOYMENT_ROLE }}
+
+      - name: Post to a Slack channel
+        id: slack
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: 'stackery-deployments'
+          slack-message: "Deploy to staging: ${{ job.status }}\nLink: ${{ github.event.head_commit.url}}\n"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  deploy-production:
+    name: Deploy to production
+    needs: [deploy-staging]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Set env variables
+        run: |
+          echo "SECRETS_NAMESPACE=/prod/" >> $GITHUB_ENV
+          echo "PROD_DEPLOYMENT_ROLE=arn:aws:iam::${{ secrets.PROD_AWS_ACCOUNT }}:role/thiscovery-devops-prod-${AWS_REGION}-PipelineExec" >> $GITHUB_ENV
+          echo "ARTIFACTS_BUCKET=thiscovery-devops-prod-deployment-artifacts" >> $GITHUB_ENV
+          echo "CLOUDFORMATION_EXECUTION_ROLE=arn:aws:iam::${{ secrets.PROD_AWS_ACCOUNT }}:role/thiscovery-devops-prod-${AWS_REGION}-CFExec" >> $GITHUB_ENV
+          echo "DEPLOYMENT_METHOD=github_actions" >> $GITHUB_ENV
+          echo "PACKAGED_TEMPLATE=${{ env.STACK_NAME }}-packaged-prod.yaml" >> $GITHUB_ENV
+
+      # Currently, this step has to be done in the workflow rather than composite action due to this issue: https://github.com/actions/runner/issues/789
+      - name: Assume the deployment pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ env.PIPELINE_USER_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.PIPELINE_USER_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.PROD_DEPLOYMENT_ROLE }}
+          role-session-name: ${{ env.STACK_NAME }}-deployment
+          role-duration-seconds: 3600
+          role-skip-session-tagging: true
+
+      - uses: actions/checkout@v3
+
+      - name: deploy to production
+        uses: THIS-Labs/actions-deploy-stack@v0.2
+        with:
+          template_name: ${{ env.PACKAGED_TEMPLATE }}
+          deployment_role: ${{ env.PROD_DEPLOYMENT_ROLE }}
+
+      - name: Post to a Slack channel
+        id: slack
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: 'stackery-deployments'
+          slack-message: "Deploy to production: ${{ job.status }}\nLink: ${{ github.event.head_commit.url}}\n"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
