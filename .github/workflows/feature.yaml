@@ -49,7 +49,7 @@ jobs:
 
   test:
     name: Test on AWS
-    needs: [deploy-testing]
+#    needs: [deploy-testing]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
