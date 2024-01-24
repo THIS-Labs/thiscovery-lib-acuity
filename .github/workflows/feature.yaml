@@ -15,7 +15,7 @@ env:
   EPSAGON_TOKEN: ${{ secrets.EPSAGON_TOKEN }}
   SAM_TEMPLATE: template.yaml
   AWS_REGION: eu-west-1
-  STACK_NAME: thiscovery-core
+  STACK_NAME: thiscovery-lib-acuity
 
 jobs:
 #  deploy-testing:

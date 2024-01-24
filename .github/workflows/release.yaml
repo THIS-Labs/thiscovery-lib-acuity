@@ -14,7 +14,7 @@ env:
   AWS_REGION: eu-west-1
   STAGING_ARTIFACTS_BUCKET: thiscovery-devops-staging-deployment-artifacts
   PROD_ARTIFACTS_BUCKET: thiscovery-devops-prod-deployment-artifacts
-  STACK_NAME: thiscovery-core
+  STACK_NAME: thiscovery-lib-acuity
 
 
 jobs:
