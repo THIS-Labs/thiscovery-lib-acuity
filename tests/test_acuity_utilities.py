@@ -25,13 +25,15 @@ from tests.test_data import test_calendar, test_block
 
 
 class TestAcuityClient(test_utils.BaseTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.acuity_client = AcuityClient()
 
     def test_01(self):
         self.assertEqual(1, 1)
-    # @classmethod
-    # def setUpClass(cls):
-    #     super().setUpClass()
-    #     cls.acuity_client = AcuityClient()
+
+
     #
     # def post_test_block(self):
     #     block_start = datetime.datetime(2030, 12, 25, 9, 0)
