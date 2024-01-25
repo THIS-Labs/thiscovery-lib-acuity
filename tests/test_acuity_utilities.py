@@ -30,9 +30,6 @@ class TestAcuityClient(test_utils.BaseTestCase):
         super().setUpClass()
         cls.acuity_client = AcuityClient()
 
-    def test_01(self):
-        self.assertEqual(1, 1)
-
     def post_test_block(self):
         block_start = datetime.datetime(2030, 12, 25, 9, 0)
         block_end = datetime.datetime(2030, 12, 25, 17, 0)
