@@ -33,15 +33,13 @@ class TestAcuityClient(test_utils.BaseTestCase):
     def test_01(self):
         self.assertEqual(1, 1)
 
-
-    #
-    # def post_test_block(self):
-    #     block_start = datetime.datetime(2030, 12, 25, 9, 0)
-    #     block_end = datetime.datetime(2030, 12, 25, 17, 0)
-    #     block_notes = "Xmas break"
-    #     return self.acuity_client.post_block(
-    #         test_calendar["id"], block_start, block_end, notes=block_notes
-    #     )
+    def post_test_block(self):
+        block_start = datetime.datetime(2030, 12, 25, 9, 0)
+        block_end = datetime.datetime(2030, 12, 25, 17, 0)
+        block_notes = "Xmas break"
+        return self.acuity_client.post_block(
+            test_calendar["id"], block_start, block_end, notes=block_notes
+        )
     #
     # def post_test_block_bad_cal_id(self):
     #     block_start = datetime.datetime(2030, 12, 25, 9, 0)
