@@ -1,4 +1,4 @@
-name: Python application
+name: Feature pipeline
 
 on:
   push:
