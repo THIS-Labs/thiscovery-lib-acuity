@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 env:
-  PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_NAMED_REPO }}
-  PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_NAMED_REPO }}
+  PIPELINE_USER_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  PIPELINE_USER_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: eu-west-1
   STACK_NAME: thiscovery-lib-acuity
 
@@ -30,8 +30,8 @@ jobs:
     - uses: THIS-Labs/actions-configure-test-env@v0.17.1
       with:
         actor2account_map: ${{ vars.ACTOR2ACCOUNT_MAP }}
-        sem86_account: ${{ secrets.SEM86_AWS_ACCOUNT_NAMED_REPO }}
-        test_calendar_email: ${{ secrets.TEST_CALENDAR_EMAIL_NAMED_REPO }}
+        sem86_account: ${{ secrets.SEM86_AWS_ACCOUNT }}
+        test_calendar_email: ${{ secrets.TEST_CALENDAR_EMAIL }}
 
     - name: Assume the testing role in testing account
       uses: aws-actions/configure-aws-credentials@v1-node16
