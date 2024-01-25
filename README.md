@@ -2,9 +2,9 @@
 
 ![Code coverage](coverage.svg)
 
-![feature](https://github.com/THIS-Labs/thiscovery-liv-acuity/actions/workflows/feature.yaml/badge.svg)
+![feature](https://github.com/THIS-Labs/thiscovery-lib-acuity/actions/workflows/feature.yaml/badge.svg)
 
-![release](https://github.com/THIS-Labs/thiscovery-liv-acuity/actions/workflows/release.yaml/badge.svg)
+![release](https://github.com/THIS-Labs/thiscovery-lib-acuity/actions/workflows/release.yaml/badge.svg)
 
 ## Installation
 
