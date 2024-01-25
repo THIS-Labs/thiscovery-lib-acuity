@@ -6,7 +6,7 @@ on:
       - 'cicd-*'
   pull_request:
     branches:
-      - 'master'
+      - 'main'
 
 
 env:
