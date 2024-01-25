@@ -1,8 +1,4 @@
 https://github.com/THIS-Labs/thiscovery-lib/archive/master.zip
 https://github.com/THIS-Labs/thiscovery-dev-tools/archive/master.zip
-# https://github.com/THIS-Labs/thiscovery-lib-acuity/archive/main.zip
 coverage
 coverage-badge
-# requests
-# simplejson
-# python-dateutil
