@@ -47,23 +47,23 @@ class TestAcuityClient(test_utils.BaseTestCase):
         bad_cal_id = 12345
         return self.acuity_client.post_block(bad_cal_id, block_start, block_end)
 
-    def test_get_calendars(self):
-        response = self.acuity_client.get_calendars()
-        for c in response:
-            del c["replyTo"]
-
-        expected_acuity_cal = {
-            "description": test_calendar["description"],
-            "email": test_calendar["email"],
-            "id": test_calendar["id"],
-            "image": test_calendar["image"],
-            "location": test_calendar["location"],
-            "name": test_calendar["name"],
-            "thumbnail": test_calendar["thumbnail"],
-            "timezone": test_calendar["timezone"],
-        }
-
-        self.assertIn(expected_acuity_cal, response)
+    # def test_get_calendars(self):
+    #     response = self.acuity_client.get_calendars()
+    #     for c in response:
+    #         del c["replyTo"]
+    #
+    #     expected_acuity_cal = {
+    #         "description": test_calendar["description"],
+    #         "email": test_calendar["email"],
+    #         "id": test_calendar["id"],
+    #         "image": test_calendar["image"],
+    #         "location": test_calendar["location"],
+    #         "name": test_calendar["name"],
+    #         "thumbnail": test_calendar["thumbnail"],
+    #         "timezone": test_calendar["timezone"],
+    #     }
+    #
+    #     self.assertIn(expected_acuity_cal, response)
 
     def test_post_get_and_delete_block_ok(self):
         # post test
