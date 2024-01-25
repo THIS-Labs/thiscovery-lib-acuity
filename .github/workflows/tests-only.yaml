@@ -31,6 +31,7 @@ jobs:
       with:
         actor2account_map: ${{ vars.ACTOR2ACCOUNT_MAP }}
         sem86_account: ${{ secrets.SEM86_AWS_ACCOUNT_NAMED_REPO }}
+        test_calendar_email: ${{ secrets.TEST_CALENDAR_EMAIL_NAMED_REPO }}
 
     - name: Assume the testing role in testing account
       uses: aws-actions/configure-aws-credentials@v1-node16
