@@ -15,6 +15,12 @@
 #   A copy of the GNU Affero General Public License is available in the
 #   docs folder of this project.  It is also available www.gnu.org/licenses/
 #
+try:
+    import local.dev_config
+    import local.secrets
+except ModuleNotFoundError:
+    pass
+
 import datetime
 from http import HTTPStatus
 
